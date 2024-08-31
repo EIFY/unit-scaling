@@ -9,6 +9,7 @@ from .._modules import (
     MHSA,
     MLP,
     Conv1d,
+    Conv2d,
     CrossEntropyLoss,
     DepthModuleList,
     DepthSequential,
@@ -103,6 +104,28 @@ def test_conv1d() -> None:
 
     unit_backward(output)
     SGD(model.parameters(), lr=1, readout_constraint="to_output_scale").step()
+
+    assert float(output.std()) == pytest.approx(1, abs=0.1)
+
+    assert_not_unit_scaled(model.weight)
+    assert_non_zeros(model.bias)
+
+
+def test_conv2d() -> None:
+    batch_size = 2**6
+    d_in = 3
+    d_out = 2**7 * 3
+    kernel_size = (16, 16)
+    in_size = (32, 32)
+    input = randn(batch_size, d_in, *in_size, requires_grad=True)
+    model = Conv2d(d_in, d_out, kernel_size, bias=True)
+    output = model(input)
+
+    assert_unit_scaled(model.weight)
+    assert_zeros(model.bias)
+
+    unit_backward(output)
+    SGD(model.parameters(), lr=1).step()
 
     assert float(output.std()) == pytest.approx(1, abs=0.1)
 

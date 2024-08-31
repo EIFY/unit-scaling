@@ -6,7 +6,7 @@ import ast
 import math
 import re
 import typing
-from collections import OrderedDict
+from collections import OrderedDict, abc
 from dataclasses import dataclass
 from types import FunctionType, ModuleType
 from typing import Any, Callable, Dict, Iterator, Optional, Tuple, Union, cast
@@ -319,6 +319,12 @@ def analyse_module(
         inputs = (inputs,)
     scales = _record_scales(fx_graph_module, inputs, backward)
     return _annotate(fx_graph_module.code, scales, syntax_highlight=syntax_highlight)
+
+
+def _pair(x):
+    if isinstance(x, abc.Iterable):
+        return tuple(x)
+    return (x, x)
 
 
 __all__ = generate__all__(__name__)

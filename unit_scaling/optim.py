@@ -12,6 +12,8 @@ function that defines the LR scaling rules.
 
 # mypy: disable-error-code="no-any-return"
 
+import functools
+import operator
 from typing import Any, Callable, Optional, Union
 
 import torch
@@ -34,12 +36,10 @@ def _get_fan_in(param: ParameterData) -> int:
     # Note: the "fan_in" of an embedding layer is the hidden (output) dimension
     if len(param.shape) == 1:
         return param.shape[0]
-    if len(param.shape) == 2:
-        return param.shape[1]
-    if len(param.shape) == 3:
-        return param.shape[1] * param.shape[2]
+    if len(param.shape) <= 4:
+        return functools.reduce(operator.mul, param.shape[1:])
     raise ValueError(
-        f"Cannot get fan_in of `ndim >= 4` param, shape={tuple(param.shape)}"
+        f"Cannot get fan_in of `ndim >= 5` param, shape={tuple(param.shape)}"
     )
 
 

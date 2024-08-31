@@ -252,6 +252,71 @@ class Conv1d(nn.Conv1d):
 
 @inherit_docstring(
     short_description=(
+        "Applies a **unit-scaled** 2D convolution to the incoming data."
+        "\nNote that this layer sets :code:`bias=False` by default."
+        "We also require padding to be supplied as an integer, not a string."
+    ),
+    add_args=[binary_constraint_docstring],
+)
+class Conv2d(nn.Conv2d):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int = 1,
+        padding: int = 0,
+        dilation: int = 1,
+        groups: int = 1,
+        bias: bool = False,
+        padding_mode: str = "zeros",
+        device: Any = None,
+        dtype: Any = None,
+        constraint: Optional[str] = "to_output_scale",
+        weight_mup_type: MupType = "weight",
+    ) -> None:
+        super().__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            groups,
+            bias,
+            padding_mode,
+            device,
+            dtype,
+        )
+        assert isinstance(padding, int), "only `int` is supported for padding type"
+        self.constraint = constraint
+        self.weight = Parameter(self.weight.data, mup_type=weight_mup_type)
+        if self.bias is not None:
+            self.bias = Parameter(self.bias.data, mup_type="bias")
+
+    def reset_parameters(self) -> None:
+        nn.init.normal_(self.weight)
+        if self.bias is not None:
+            self.bias.data.zero_()
+
+    def forward(self, input: Tensor) -> Tensor:
+        if self.padding_mode != "zeros":
+            input = F.pad(
+                input, self._reversed_padding_repeated_twice, mode=self.padding_mode
+            )
+        return U.conv2d(
+            input,
+            self.weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.dilation,
+            self.groups,
+        )
+
+
+@inherit_docstring(
+    short_description=(
         "Applies a **unit-scaled** Layer Normalization over a mini-batch of inputs."
         "\nNote that this layer sets :code:`elementwise_affine=False` by default."
     ),

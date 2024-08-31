@@ -7,6 +7,7 @@ from torch import Tensor, randint, randn, tensor, zeros
 from ..functional import (
     add,
     conv1d,
+    conv2d,
     cross_entropy,
     dropout,
     embedding,
@@ -359,6 +360,26 @@ def test_conv1d_groups() -> None:
     weight = randn(d_out, d_in // groups, kernel_size, requires_grad=True)
     bias = zeros(d_out).requires_grad_()
     output = conv1d(input, weight, bias, groups=groups, constraint=None)
+    unit_backward(output)
+
+    assert_unit_scaled(output, input.grad, weight.grad, bias.grad)
+
+
+# --- test conv2d() ---
+
+
+def test_conv2d_stride() -> None:
+    batch_size = 2**6
+    d_in = 3
+    d_out = 2**7 * 3
+    kernel_size = (16, 16)
+    in_size = (224, 224)
+    stride = (16, 16)
+
+    input = randn(batch_size, d_in, *in_size, requires_grad=True)
+    weight = randn(d_out, d_in, *kernel_size, requires_grad=True)
+    bias = zeros(d_out).requires_grad_()
+    output = conv2d(input, weight, bias, stride=stride, constraint=None)
     unit_backward(output)
 
     assert_unit_scaled(output, input.grad, weight.grad, bias.grad)
