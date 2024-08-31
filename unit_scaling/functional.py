@@ -24,6 +24,7 @@ from .docs import (
     ternary_constraint_docstring,
 )
 from .scale import scale_bwd, scale_fwd
+from .utils import _pair
 
 
 def _get_broadcast_sizes(*args: Tensor) -> Tuple[int, ...]:
@@ -302,6 +303,56 @@ def conv1d(
     bias = scale_bwd(bias, grad_bias_scale) if bias is not None else None
     output = F.conv1d(input, weight, bias, stride, padding, dilation, groups)
     assert out_size == output.shape[-1]
+    return scale_fwd(output, output_scale)
+
+
+@docstring_from(
+    F.conv2d,
+    short_description="Applies a **unit-scaled** 2D convolution.",
+    add_args=[
+        binary_constraint_docstring,
+        "scale_power ((float, float, float), optional): scaling power"
+        " for each of (output, grad(input), grad(weight|bias))",
+    ],
+)
+def conv2d(
+    input: Tensor,
+    weight: Tensor,
+    bias: Optional[Tensor] = None,
+    stride: int = 1,
+    padding: int = 0,
+    dilation: int = 1,
+    groups: int = 1,
+    constraint: Optional[str] = "to_output_scale",
+    scale_power: Tuple[float, float, float] = (0.5, 0.5, 0.5),
+) -> Tensor:
+    fan_out, fan_in, *kernel_size_ = weight.shape
+    in_size = input.shape[-2:]
+    stride_ = _pair(stride)
+    padding_ = _pair(padding)
+    dilation_ = _pair(dilation)
+    out_size = tuple(
+        (size + 2 * padding - dilation * (kernel_size - 1) - 1) // stride + 1
+        for size, stride, padding, dilation, kernel_size in zip(in_size, stride_, padding_, dilation_, kernel_size_)
+    )
+
+    batch_size = out_size[0] * out_size[1]
+    if len(input.shape) > 3:
+        batch_size *= input.shape[:-3].numel()
+
+    output_scale = 1 / (fan_in * kernel_size_[0] * kernel_size_[1]) ** scale_power[0]
+    grad_input_scale = (stride_[0] * stride_[1] * groups / (fan_out * kernel_size_[0] * kernel_size_[1])) ** scale_power[1]
+    grad_weight_scale = grad_bias_scale = 1 / batch_size ** scale_power[2]
+
+    output_scale, grad_input_scale = apply_constraint(
+        constraint, output_scale, grad_input_scale
+    )
+
+    input = scale_bwd(input, grad_input_scale)
+    weight = scale_bwd(weight, grad_weight_scale)
+    bias = scale_bwd(bias, grad_bias_scale) if bias is not None else None
+    output = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
+    assert out_size == output.shape[-2:]
     return scale_fwd(output, output_scale)
 
 
