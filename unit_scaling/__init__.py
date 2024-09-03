@@ -11,6 +11,7 @@ from ._modules import (
     MHSA,
     MLP,
     Conv1d,
+    Conv2d,
     CrossEntropyLoss,
     DepthModuleList,
     DepthSequential,
@@ -33,6 +34,7 @@ from .parameter import MupType, Parameter
 __all__ = [
     # Modules
     "Conv1d",
+    "Conv2d",
     "CrossEntropyLoss",
     "DepthModuleList",
     "DepthSequential",
