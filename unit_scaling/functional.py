@@ -105,6 +105,26 @@ def silu(
     return scaled_silu(input, mult=mult)
 
 
+@docstring_from(
+    F.tanh,
+    short_description="Applies a **unit-scaled** tanh function.",
+    add_args=[binary_constraint_docstring],
+)
+def tanh(
+    input: Tensor,
+    constraint: Optional[str] = "to_output_scale",
+) -> Tensor:
+    # integral_(-∞)^∞ (e^(-x^2/2) tanh^2(x))/sqrt(2 π) dx = 0.394294
+    output_scale = 0.394294 ** -0.5
+    # Derivative of tanh(x) = sech^2(x)
+    # integral_(-∞)^∞ (e^(-x^2/2) sech^4(x))/sqrt(2 π) dx = 0.464403
+    grad_input_scale = 0.464403 ** -0.5
+    scaled_tanh = scale_elementwise(
+        F.tanh, output_scale, grad_input_scale, constraint
+    )
+    return scaled_tanh(input)
+
+
 @format_docstring(mult_docstring())
 def silu_glu(input: Tensor, gate: Tensor, mult: float = 1.0) -> Tensor:
     """Applies a **unit-scaled** gated linear unit for `input * silu(gate)`.

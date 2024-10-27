@@ -73,6 +73,25 @@ class SiLU(nn.SiLU):
 
 
 @inherit_docstring(
+    short_description="Applies a **unit-scaled** Hyperbolic Tangent function:",
+    add_args=[binary_constraint_docstring],
+)
+class Tanh(nn.Tanh):
+    def __init__(
+        self,
+        constraint: Optional[str] = "to_output_scale",
+    ) -> None:
+        super().__init__()
+        self.constraint = constraint
+
+    def forward(self, input: Tensor) -> Tensor:
+        return U.tanh(
+            input,
+            constraint=self.constraint,
+        )
+
+
+@inherit_docstring(
     short_description=(
         "Applies a **unit-scaled** Softmax function to an n-dimensional input Tensor."
         "\n\n"
