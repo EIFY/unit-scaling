@@ -43,6 +43,14 @@ def _get_fan_in(param: ParameterData) -> int:
     )
 
 
+def _get_fan_out(param: ParameterData) -> int:
+    if len(param.shape) == 1:
+        raise ValueError(
+            f"Cannot get fan_out of `ndim == 1` param, shape={tuple(param.shape)}"
+        )
+    return param.shape[0]  # Correct for nn.Linear and nn.Conv{N}d, not checked for others
+
+
 def lr_scale_func_sgd(
     readout_constraint: Optional[str],
 ) -> Callable[[ParameterData], float]:
@@ -82,6 +90,8 @@ def lr_scale_func_adam(param: ParameterData) -> float:
         return scale * _get_fan_in(param) ** -0.5
     if param.mup_type == "output":
         return scale
+    if param.mup_type == "input":
+        return scale * _get_fan_out(param) ** -0.5
     assert False, f"Unexpected mup_type {param.mup_type}"
 
 

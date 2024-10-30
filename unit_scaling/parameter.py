@@ -10,7 +10,7 @@ from typing import Any, Dict, Literal, Optional, Protocol, TypeGuard
 import torch
 from torch import Tensor, nn
 
-MupType = Literal["weight", "bias", "norm", "output"]
+MupType = Literal["weight", "bias", "norm", "output", "input"]
 
 
 class ParameterData(Protocol):
